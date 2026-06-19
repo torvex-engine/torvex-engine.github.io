@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Gyro Controller</title>
+</head>
+<body>
+    <h1>Gyro Controller</h1>
+    <button id="start">Allow gyroscope usage</button>
+
+    <pre id="output"></pre>
+
+    <script>
+        const promptResult = prompt("Enter the target server's IPv4 address:");
+        if (promptResult === null) {
+          alert("No IP address entered.");
+          throw new Error("Cancelled by user");
+        }
+      
+        const output = document.getElementById("output");
+
+        const ws = new WebSocket(`ws://${promptResult}:8080/`);
+
+        document.getElementById("start").onclick = async () => {
+
+            if (
+                typeof DeviceOrientationEvent !== "undefined" &&
+                typeof DeviceOrientationEvent.requestPermission === "function"
+            ) {
+                const permission =
+                    await DeviceOrientationEvent.requestPermission();
+
+                if (permission !== "granted") {
+                    alert("Gyroscope usage isn't allowed");
+                    return;
+                }
+            }
+
+            window.addEventListener("deviceorientation", (event) => {
+
+                const yaw = event.alpha; // Z
+                const pitch = event.beta; // X
+                const roll = event.gamma; // Y
+
+                output.textContent =
+                    `Yaw: ${yaw}\nPitch: ${pitch}\nRoll: ${roll}`;
+
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        yaw,
+                        pitch,
+                        roll
+                    }));
+                }
+            });
+        };
+    </script>
+</body>
+</html>
